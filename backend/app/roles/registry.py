@@ -44,6 +44,11 @@ class RoleRegistry:
         return list(cls._roles.keys())
 
     @classmethod
+    def all(cls) -> dict[str, Type[RoleBase]]:
+        """Return the full registry mapping."""
+        return dict(cls._roles)
+
+    @classmethod
     def clear(cls) -> None:
         """Remove all registrations (for testing)."""
         cls._roles.clear()
