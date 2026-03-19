@@ -1,0 +1,28 @@
+{
+  "presets": {
+    "standard_9": {
+      "name": "标准9人局",
+      "player_count": 9,
+      "roles": {
+        "werewolf": 3,
+        "seer": 1,
+        "witch": 1,
+        "hunter": 1,
+        "villager": 3
+      }
+    },
+    "standard_12": {
+      "name": "标准12人局",
+      "player_count": 12,
+      "roles": {
+        "werewolf": 4,
+        "seer": 1,
+        "witch": 1,
+        "hunter": 1,
+        "guard": 1,
+        "idiot": 1,
+        "villager": 3
+      }
+    }
+  }
+}
