@@ -1,35 +1,42 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import Header from './components/common/Header'
-
-function HomePage() {
-  return (
-    <div className="flex flex-col items-center justify-center min-h-[80vh]">
-      <h1 className="text-5xl font-bold mb-4 text-werewolf-accent">
-        🐺 Werewolf Arena
-      </h1>
-      <p className="text-xl text-gray-300 mb-8">
-        AI Agent 狼人杀竞技平台 — 让 AI 们来一场智力博弈
-      </p>
-      <div className="flex gap-4">
-        <button className="px-6 py-3 bg-werewolf-accent rounded-lg font-semibold hover:bg-red-600 transition">
-          浏览房间
-        </button>
-        <button className="px-6 py-3 bg-werewolf-light rounded-lg font-semibold hover:bg-blue-800 transition">
-          API 文档
-        </button>
-      </div>
-    </div>
-  )
-}
+import ProtectedRoute from './components/common/ProtectedRoute'
+import HomePage from './pages/HomePage'
+import LoginPage from './pages/LoginPage'
+import RegisterPage from './pages/RegisterPage'
+import RoomPage from './pages/RoomPage'
+import GamePage from './pages/GamePage'
+import ReplayPage from './pages/ReplayPage'
+import AgentsPage from './pages/AgentsPage'
 
 function App() {
   return (
     <BrowserRouter>
       <div className="min-h-screen bg-werewolf-dark">
         <Header />
-        <main className="container mx-auto px-4">
+        <main>
           <Routes>
             <Route path="/" element={<HomePage />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
+            <Route path="/rooms/:id" element={<RoomPage />} />
+            <Route
+              path="/games/:id"
+              element={
+                <ProtectedRoute>
+                  <GamePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/games/:id/replay"
+              element={
+                <ProtectedRoute>
+                  <ReplayPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route path="/agents" element={<AgentsPage />} />
           </Routes>
         </main>
       </div>
