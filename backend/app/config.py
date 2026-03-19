@@ -28,6 +28,9 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 60 * 24  # 24 hours
     algorithm: str = "HS256"
 
+    # WebSocket / Reconnection
+    reconnect_timeout_seconds: int = 60
+
     # CORS
     cors_origins: str = "http://localhost:5173"
 
