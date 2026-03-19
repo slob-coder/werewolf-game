@@ -44,9 +44,6 @@ class EventBus:
         self._redis = redis
         self._pubsub = redis.pubsub()
         self._running = True
-        self._listener_task = asyncio.create_task(
-            self._listen(), name="eventbus-listener"
-        )
         logger.info("EventBus started")
 
     async def stop(self) -> None:
@@ -136,6 +133,11 @@ class EventBus:
             if self._pubsub:
                 await self._pubsub.subscribe(channel)
                 logger.debug("Subscribed to %s", channel)
+            # Start listener on first subscription
+            if self._listener_task is None and self._running:
+                self._listener_task = asyncio.create_task(
+                    self._listen(), name="eventbus-listener"
+                )
         self._handlers[channel].append(handler)
 
     async def _unsubscribe(self, channel: str) -> None:
