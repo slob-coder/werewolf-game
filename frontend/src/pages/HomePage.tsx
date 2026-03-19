@@ -23,7 +23,7 @@ export default function HomePage() {
     try {
       setLoading(true)
       const data = await getRooms()
-      setRooms(data.items ?? [])
+      setRooms(data)
     } catch {
       setError('无法加载房间列表')
     } finally {

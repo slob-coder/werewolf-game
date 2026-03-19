@@ -43,8 +43,10 @@ api.interceptors.response.use(
 // ── Auth ──────────────────────────────────────────────
 
 export async function register(username: string, password: string, email?: string): Promise<AuthTokens> {
-  const { data } = await api.post('/auth/register', { username, password, email })
-  return data
+  // Register returns UserResponse (no token), so we need to login after
+  await api.post('/auth/register', { username, password, email })
+  // Auto-login after successful registration
+  return login(username, password)
 }
 
 export async function login(username: string, password: string): Promise<AuthTokens> {
@@ -60,24 +62,24 @@ export async function getMe(): Promise<UserInfo> {
 // ── Agents ────────────────────────────────────────────
 
 export async function getMyAgents(): Promise<AgentInfo[]> {
-  const { data } = await api.get('/auth/agents')
+  const { data } = await api.get('/agents')
   return data
 }
 
 export async function createAgent(name: string, description?: string): Promise<AgentInfo & { api_key: string }> {
-  const { data } = await api.post('/auth/agents', { name, description })
+  const { data } = await api.post('/agents', { name, description })
   return data
 }
 
 export async function deleteAgent(agentId: string): Promise<void> {
-  await api.delete(`/auth/agents/${agentId}`)
+  await api.delete(`/agents/${agentId}`)
 }
 
 // ── Rooms ─────────────────────────────────────────────
 
-export async function getRooms(page = 1, pageSize = 20): Promise<PaginatedResponse<RoomInfo>> {
-  const { data } = await api.get('/rooms', { params: { page, page_size: pageSize } })
-  return data
+export async function getRooms(page = 1, pageSize = 20): Promise<RoomInfo[]> {
+  const { data } = await api.get('/rooms', { params: { status: 'waiting' } })
+  return Array.isArray(data) ? data : []
 }
 
 export async function getRoom(roomId: string): Promise<RoomInfo> {
@@ -85,8 +87,14 @@ export async function getRoom(roomId: string): Promise<RoomInfo> {
   return data
 }
 
-export async function createRoom(name: string, maxPlayers = 9, rolePreset = 'standard_9'): Promise<RoomInfo> {
-  const { data } = await api.post('/rooms', { name, max_players: maxPlayers, role_preset: rolePreset })
+export async function createRoom(name: string, playerCount = 9, rolePreset = 'classic_9p'): Promise<RoomInfo> {
+  const { data } = await api.post('/rooms', {
+    name,
+    config: {
+      player_count: playerCount,
+      preset: rolePreset,
+    },
+  })
   return data
 }
 
