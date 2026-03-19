@@ -1,1 +1,185 @@
 """API v1 router - Room management endpoints."""
+
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.status import (
+    HTTP_400_BAD_REQUEST,
+    HTTP_404_NOT_FOUND,
+)
+
+from app.dependencies import get_current_agent, get_current_user, get_db
+from app.models.agent import Agent
+from app.models.user import User
+from app.rooms.manager import room_manager
+from app.schemas.room import (
+    PlayerSlotResponse,
+    RoomCreateRequest,
+    RoomJoinResponse,
+    RoomListResponse,
+    RoomReadyResponse,
+    RoomResponse,
+    RoomStartResponse,
+)
+
+router = APIRouter(prefix="/api/v1/rooms", tags=["rooms"])
+
+
+# ── Helpers ──────────────────────────────────────────────────────
+
+
+def _build_room_response(room, slots) -> RoomResponse:
+    """Build a RoomResponse from a Room model and slot list."""
+    config = room.config or {}
+    player_count = config.get("player_count", 9)
+    current_players = sum(1 for s in slots if s.status != "empty")
+    return RoomResponse(
+        id=room.id,
+        name=room.name,
+        status=room.status,
+        config=config,
+        created_by=room.created_by,
+        created_at=room.created_at,
+        player_count=player_count,
+        current_players=current_players,
+        slots=[
+            PlayerSlotResponse(
+                seat=s.seat,
+                agent_id=s.agent_id,
+                agent_name=s.agent_name,
+                status=s.status,
+            )
+            for s in slots
+        ],
+    )
+
+
+def _build_list_item(room, slots) -> RoomListResponse:
+    config = room.config or {}
+    player_count = config.get("player_count", 9)
+    current_players = sum(1 for s in slots if s.status != "empty")
+    return RoomListResponse(
+        id=room.id,
+        name=room.name,
+        status=room.status,
+        player_count=player_count,
+        current_players=current_players,
+        created_at=room.created_at,
+    )
+
+
+# ── Endpoints ────────────────────────────────────────────────────
+
+
+@router.post("", response_model=RoomResponse, status_code=201)
+async def create_room(
+    body: RoomCreateRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Create a new game room."""
+    room = await room_manager.create_room(db, body, created_by=current_user.id)
+    slots = room_manager.get_slots(room.id)
+    return _build_room_response(room, slots)
+
+
+@router.get("", response_model=list[RoomListResponse])
+async def list_rooms(
+    status: str | None = Query(None, description="Filter by room status"),
+    db: AsyncSession = Depends(get_db),
+):
+    """List rooms with optional status filter."""
+    rooms = await room_manager.list_rooms(db, status=status)
+    result = []
+    for r in rooms:
+        slots = room_manager.get_slots(r.id)
+        result.append(_build_list_item(r, slots))
+    return result
+
+
+@router.get("/{room_id}", response_model=RoomResponse)
+async def get_room(
+    room_id: str,
+    db: AsyncSession = Depends(get_db),
+):
+    """Get room details by ID."""
+    room = await room_manager.get_room(db, room_id)
+    if room is None:
+        raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="Room not found")
+    # Ensure in-memory state is initialized
+    room_manager._ensure_state(room)
+    slots = room_manager.get_slots(room.id)
+    return _build_room_response(room, slots)
+
+
+@router.post("/{room_id}/join", response_model=RoomJoinResponse)
+async def join_room(
+    room_id: str,
+    agent: Agent = Depends(get_current_agent),
+    db: AsyncSession = Depends(get_db),
+):
+    """Agent joins a room. Requires X-Agent-Key header."""
+    try:
+        slot = await room_manager.join_room(db, room_id, agent)
+    except ValueError as e:
+        raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail=str(e))
+
+    return RoomJoinResponse(
+        seat=slot.seat,
+        room_id=room_id,
+        agent_id=agent.id,
+        message=f"Joined room at seat {slot.seat}",
+    )
+
+
+@router.post("/{room_id}/leave")
+async def leave_room(
+    room_id: str,
+    agent: Agent = Depends(get_current_agent),
+    db: AsyncSession = Depends(get_db),
+):
+    """Agent leaves a room. Requires X-Agent-Key header."""
+    try:
+        slot = await room_manager.leave_room(db, room_id, agent)
+    except ValueError as e:
+        raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail=str(e))
+
+    return {"message": f"Left room from seat {slot.seat}", "seat": slot.seat}
+
+
+@router.post("/{room_id}/ready", response_model=RoomReadyResponse)
+async def toggle_ready(
+    room_id: str,
+    agent: Agent = Depends(get_current_agent),
+    db: AsyncSession = Depends(get_db),
+):
+    """Toggle agent's ready status. Requires X-Agent-Key header."""
+    try:
+        slot = await room_manager.toggle_ready(db, room_id, agent)
+    except ValueError as e:
+        raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail=str(e))
+
+    is_ready = slot.status == "ready"
+    return RoomReadyResponse(
+        seat=slot.seat,
+        room_id=room_id,
+        is_ready=is_ready,
+        message="Ready" if is_ready else "Not ready",
+    )
+
+
+@router.post("/{room_id}/start", response_model=RoomStartResponse)
+async def start_game(
+    room_id: str,
+    db: AsyncSession = Depends(get_db),
+):
+    """Start the game in a room. Room must be full with all players ready."""
+    try:
+        game = await room_manager.start_game(db, room_id)
+    except ValueError as e:
+        raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail=str(e))
+
+    return RoomStartResponse(
+        room_id=room_id,
+        game_id=game.id,
+        message="Game started",
+    )

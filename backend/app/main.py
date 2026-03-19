@@ -8,6 +8,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.auth import router as auth_router
+from app.api.v1.games import router as games_router
+from app.api.v1.roles import router as roles_router
+from app.api.v1.rooms import router as rooms_router
 from app.config import settings
 
 # Ensure all models are imported so Alembic/metadata knows about them
@@ -45,6 +48,9 @@ app.add_middleware(
 
 # Register routers
 app.include_router(auth_router)
+app.include_router(rooms_router)
+app.include_router(games_router)
+app.include_router(roles_router)
 
 
 # ── Health checks ────────────────────────────────────────────────
