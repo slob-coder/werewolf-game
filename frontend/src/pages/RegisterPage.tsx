@@ -15,13 +15,18 @@ export default function RegisterPage() {
     e.preventDefault()
     setLocalError(null)
 
-    if (password !== confirmPassword) {
-      setLocalError('两次密码不一致')
+    if (!username || username.trim().length < 3) {
+      setLocalError('用户名至少 3 个字符')
       return
     }
 
-    if (password.length < 6) {
+    if (!password || password.length < 6) {
       setLocalError('密码至少 6 个字符')
+      return
+    }
+
+    if (password !== confirmPassword) {
+      setLocalError('两次密码不一致')
       return
     }
 
