@@ -11,7 +11,11 @@ from app.api.v1.auth import router as auth_router
 from app.api.v1.games import router as games_router
 from app.api.v1.roles import router as roles_router
 from app.api.v1.rooms import router as rooms_router
+from app.api.v1.spectator import router as spectator_router
+from app.api.v1.stats import router as stats_router
 from app.config import settings
+from app.websocket.event_bus import event_bus
+from app.websocket.server import socket_app
 
 # Ensure all models are imported so Alembic/metadata knows about them
 import app.models  # noqa: F401
@@ -25,8 +29,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         settings.redis_url,
         decode_responses=True,
     )
+    # Start event bus
+    await event_bus.start(app.state.redis)
     yield
     # Shutdown
+    await event_bus.stop()
     await app.state.redis.close()
 
 
@@ -51,6 +58,11 @@ app.include_router(auth_router)
 app.include_router(rooms_router)
 app.include_router(games_router)
 app.include_router(roles_router)
+app.include_router(spectator_router)
+app.include_router(stats_router)
+
+# Mount Socket.IO ASGI app
+app.mount("/ws", socket_app)
 
 
 # ── Health checks ────────────────────────────────────────────────
