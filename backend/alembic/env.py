@@ -10,6 +10,9 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 from app.config import settings
 from app.database import Base
 
+# Import all models so they are registered on Base.metadata
+import app.models  # noqa: F401
+
 # Alembic Config object
 config = context.config
 

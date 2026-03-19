@@ -7,7 +7,11 @@ import redis.asyncio as aioredis
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.v1.auth import router as auth_router
 from app.config import settings
+
+# Ensure all models are imported so Alembic/metadata knows about them
+import app.models  # noqa: F401
 
 
 @asynccontextmanager
@@ -39,8 +43,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Register routers
+app.include_router(auth_router)
 
-# Health check endpoint
+
+# ── Health checks ────────────────────────────────────────────────
+
 @app.get("/health")
 async def health_check() -> dict[str, str]:
     """Service health check."""
