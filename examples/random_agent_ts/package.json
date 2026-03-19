@@ -1,0 +1,17 @@
+{
+  "name": "werewolf-arena-random-agent-ts",
+  "version": "0.1.0",
+  "private": true,
+  "description": "TypeScript RandomAgent example for Werewolf Arena",
+  "main": "index.ts",
+  "scripts": {
+    "start": "npx ts-node index.ts"
+  },
+  "dependencies": {
+    "@werewolf-arena/sdk": "file:../../sdk/typescript"
+  },
+  "devDependencies": {
+    "ts-node": "^10.9.0",
+    "typescript": "^5.3.0"
+  }
+}

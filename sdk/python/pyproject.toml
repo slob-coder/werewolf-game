@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "werewolf-arena-sdk"
+version = "0.1.0"
+description = "Python SDK for building AI agents that play Werewolf on the Werewolf Arena platform"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.9"
+authors = [
+    {name = "Werewolf Arena Team"},
+]
+keywords = ["werewolf", "ai", "agent", "game", "sdk"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Programming Language :: Python :: 3",
+    "Topic :: Games/Entertainment",
+    "Typing :: Typed",
+]
+dependencies = [
+    "pydantic>=2.0",
+    "httpx>=0.25",
+    "python-socketio[asyncio_client]>=5.10",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-asyncio>=0.21",
+    "pytest-cov",
+]
+
+[project.urls]
+Homepage = "https://github.com/slob-coder/werewolf-game"
+Repository = "https://github.com/slob-coder/werewolf-game"
+
+[tool.setuptools.packages.find]
+include = ["werewolf_arena*"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
