@@ -1,5 +1,36 @@
 {
   "presets": {
+    "standard_6": {
+      "name": "标准6人局",
+      "player_count": 6,
+      "roles": {
+        "werewolf": 2,
+        "seer": 1,
+        "witch": 1,
+        "villager": 2
+      }
+    },
+    "standard_7": {
+      "name": "标准7人局",
+      "player_count": 7,
+      "roles": {
+        "werewolf": 2,
+        "seer": 1,
+        "witch": 1,
+        "hunter": 1,
+        "villager": 2
+      }
+    },
+    "standard_8": {
+      "name": "标准8人局",
+      "player_count": 8,
+      "roles": {
+        "werewolf": 3,
+        "seer": 1,
+        "witch": 1,
+        "villager": 3
+      }
+    },
     "standard_9": {
       "name": "标准9人局",
       "player_count": 9,
@@ -8,6 +39,30 @@
         "seer": 1,
         "witch": 1,
         "hunter": 1,
+        "villager": 3
+      }
+    },
+    "standard_10": {
+      "name": "标准10人局",
+      "player_count": 10,
+      "roles": {
+        "werewolf": 3,
+        "seer": 1,
+        "witch": 1,
+        "hunter": 1,
+        "guard": 1,
+        "villager": 3
+      }
+    },
+    "standard_11": {
+      "name": "标准11人局",
+      "player_count": 11,
+      "roles": {
+        "werewolf": 4,
+        "seer": 1,
+        "witch": 1,
+        "hunter": 1,
+        "guard": 1,
         "villager": 3
       }
     },
