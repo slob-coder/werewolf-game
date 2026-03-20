@@ -10,15 +10,12 @@ from starlette.status import (
 )
 
 from app.dependencies import get_current_agent, get_db
-from app.engine.action_validator import ActionValidator
+from app.engine.game_engine import engine_registry
 from app.engine.information_filter import (
     ContentFilter,
-    InformationFilter,
     PlayerContext,
     information_filter,
 )
-from app.engine.state_machine import GamePhase
-from app.models.action import GameAction
 from app.models.agent import Agent
 from app.models.event import GameEvent
 from app.models.game import Game
@@ -35,8 +32,6 @@ from app.schemas.game import (
 )
 
 router = APIRouter(prefix="/api/v1/games", tags=["games"])
-
-validator = ActionValidator()
 
 
 # ── Helpers ──────────────────────────────────────────────────────
@@ -90,7 +85,12 @@ async def submit_action(
     agent: Agent = Depends(get_current_agent),
     db: AsyncSession = Depends(get_db),
 ):
-    """Agent submits a game action. Validated against current phase and role."""
+    """Agent submits a game action.
+
+    The action is routed through the active GameEngine instance which
+    handles validation, side-effects, phase completion, and event
+    broadcasting.
+    """
     game = await _get_game(db, game_id)
 
     if game.status != "in_progress":
@@ -101,7 +101,7 @@ async def submit_action(
 
     player = await _get_player_in_game(db, game_id, agent.id)
 
-    # Parse action type
+    # Content filter check for speech/chat actions
     try:
         action_type = ActionType(body.action_type)
     except ValueError:
@@ -110,7 +110,6 @@ async def submit_action(
             detail=f"Unknown action type: {body.action_type}",
         )
 
-    # Content filter check for speech/chat actions
     if action_type in (ActionType.SPEECH, ActionType.WEREWOLF_CHAT, ActionType.LAST_WORDS):
         if body.content:
             check_result = ContentFilter.check(body.content, player.role)
@@ -120,73 +119,25 @@ async def submit_action(
                     detail=f"Content rejected: {check_result.reason}",
                 )
 
-    # Resolve role
-    role_cls = RoleRegistry.get(player.role)
-    if role_cls is None:
+    # Route to GameEngine
+    engine = engine_registry.get(game_id)
+    if engine is None:
         raise HTTPException(
             status_code=HTTP_400_BAD_REQUEST,
-            detail=f"Unknown role: {player.role}",
-        )
-    role_instance = role_cls()
-
-    # Get current phase
-    current_phase = GamePhase(game.current_phase) if game.current_phase else GamePhase.WAITING
-
-    # Check if already acted this phase
-    existing_action = await db.execute(
-        select(GameAction).where(
-            GameAction.game_id == game_id,
-            GameAction.player_id == player.id,
-            GameAction.round == game.current_round,
-            GameAction.phase == game.current_phase,
-        )
-    )
-    already_acted = existing_action.scalar_one_or_none() is not None
-
-    # Get alive seats
-    all_players = await db.execute(
-        select(GamePlayer).where(GamePlayer.game_id == game_id)
-    )
-    alive_seats = {
-        p.seat for p in all_players.scalars().all() if p.is_alive
-    }
-
-    # Validate action
-    result = validator.validate(
-        action_type=action_type,
-        actor_seat=player.seat,
-        role=role_instance,
-        current_phase=current_phase,
-        is_alive=player.is_alive,
-        target_seat=body.target_seat,
-        alive_seats=alive_seats,
-        already_acted=already_acted,
-    )
-
-    if not result.valid:
-        return ActionResponse(
-            success=False,
-            message=result.reason,
+            detail="No active game engine for this game",
         )
 
-    # Record the action
-    action = GameAction(
-        game_id=game_id,
+    result = await engine.process_action(
         player_id=player.id,
-        action_type=body.action_type,
-        round=game.current_round,
-        phase=game.current_phase or "",
+        action_type_str=body.action_type,
         target_seat=body.target_seat,
         content=body.content,
     )
-    db.add(action)
-    await db.flush()
-    await db.refresh(action)
 
     return ActionResponse(
-        success=True,
-        action_id=action.id,
-        message="Action recorded",
+        success=result["success"],
+        action_id=result.get("action_id"),
+        message=result["message"],
     )
 
 

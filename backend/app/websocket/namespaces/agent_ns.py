@@ -140,6 +140,9 @@ class AgentNamespace(socketio.AsyncNamespace):
         """Handle action submission from agent.
 
         Expected data: {"action_type": "...", "target_seat": N, "content": "..."}
+
+        Routes the action through the GameEngine for validation, side-effect
+        processing, and phase advancement.
         """
         session = await self._sio.get_session(sid, namespace="/agent")
         if not session:
@@ -151,51 +154,112 @@ class AgentNamespace(socketio.AsyncNamespace):
             )
             return
 
-        # Acknowledge receipt
-        await self._sio.emit(
-            "action.ack",
-            {
-                "action_type": data.get("action_type"),
-                "status": "received",
-                "agent_id": session.get("agent_id"),
-                "game_id": session.get("game_id"),
-            },
-            room=sid,
-            namespace="/agent",
+        game_id = session.get("game_id")
+        player_id = session.get("player_id")
+        action_type = data.get("action_type")
+
+        if not game_id or not player_id or not action_type:
+            await self._sio.emit(
+                "action.rejected",
+                {"reason": "Missing game_id, player_id, or action_type"},
+                room=sid,
+                namespace="/agent",
+            )
+            return
+
+        # Get the active GameEngine
+        from app.engine.game_engine import engine_registry
+
+        engine = engine_registry.get(game_id)
+        if engine is None:
+            await self._sio.emit(
+                "action.rejected",
+                {"reason": "No active game engine"},
+                room=sid,
+                namespace="/agent",
+            )
+            return
+
+        # Process through engine
+        result = await engine.process_action(
+            player_id=player_id,
+            action_type_str=action_type,
+            target_seat=data.get("target_seat"),
+            content=data.get("content"),
         )
 
+        if result["success"]:
+            await self._sio.emit(
+                "action.ack",
+                {
+                    "action_type": action_type,
+                    "action_id": result.get("action_id"),
+                    "status": "accepted",
+                    "agent_id": session.get("agent_id"),
+                    "game_id": game_id,
+                },
+                room=sid,
+                namespace="/agent",
+            )
+        else:
+            await self._sio.emit(
+                "action.rejected",
+                {
+                    "action_type": action_type,
+                    "reason": result["message"],
+                    "agent_id": session.get("agent_id"),
+                    "game_id": game_id,
+                },
+                room=sid,
+                namespace="/agent",
+            )
+
         logger.info(
-            "Action from agent %s in game %s: %s",
+            "Action from agent %s in game %s: %s → %s",
             session.get("agent_id"),
-            session.get("game_id"),
-            data.get("action_type"),
+            game_id,
+            action_type,
+            "accepted" if result["success"] else f"rejected ({result['message']})",
         )
 
     async def on_agent_speech(self, sid: str, data: dict[str, Any]) -> None:
         """Handle speech content from agent.
 
         Expected data: {"content": "..."}
+
+        Speech is submitted as a SPEECH action through the GameEngine.
         """
         session = await self._sio.get_session(sid, namespace="/agent")
         if not session:
             return
 
-        content = data.get("content", "")
         game_id = session.get("game_id")
-        seat = session.get("seat")
+        player_id = session.get("player_id")
+        content = data.get("content", "")
 
-        # Broadcast speech to all agents in the game room
-        room = f"game:{game_id}"
-        await self._sio.emit(
-            "player.speech",
-            {
-                "seat": seat,
-                "content": content,
-                "agent_name": session.get("agent_name"),
-            },
-            room=room,
-            namespace="/agent",
+        if not game_id or not player_id:
+            return
+
+        from app.engine.game_engine import engine_registry
+
+        engine = engine_registry.get(game_id)
+        if engine is None:
+            return
+
+        # Route speech as an action through the engine
+        result = await engine.process_action(
+            player_id=player_id,
+            action_type_str="speech",
+            content=content,
         )
+
+        if not result["success"]:
+            await self._sio.emit(
+                "action.rejected",
+                {"action_type": "speech", "reason": result["message"]},
+                room=sid,
+                namespace="/agent",
+            )
 
     async def on_heartbeat(self, sid: str, data: dict | None = None) -> None:
         """Handle heartbeat from agent."""

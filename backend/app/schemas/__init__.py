@@ -1,5 +1,6 @@
 """Pydantic schemas package."""
 
+from app.schemas.action import ActionHistoryItem, ActionRequest, ActionResponse  # noqa: F401
 from app.schemas.auth import (  # noqa: F401
     AgentCreateRequest,
     AgentCreateResponse,
@@ -9,3 +10,5 @@ from app.schemas.auth import (  # noqa: F401
     UserRegisterRequest,
     UserResponse,
 )
+from app.schemas.event import GameEventResponse, GameEventsListResponse  # noqa: F401
+from app.schemas.spectator import ReplayResponse, SpectatorPlayerState, SpectatorSnapshot  # noqa: F401

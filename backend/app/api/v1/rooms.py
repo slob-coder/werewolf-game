@@ -1,5 +1,7 @@
 """API v1 router - Room management endpoints."""
 
+import asyncio
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.status import (
@@ -8,9 +10,11 @@ from starlette.status import (
 )
 
 from app.dependencies import get_current_agent, get_current_user, get_db
+from app.engine.game_engine import engine_registry
 from app.models.agent import Agent
 from app.models.user import User
 from app.rooms.manager import room_manager
+from app.scheduler.timeout_scheduler import TimeoutScheduler
 from app.schemas.room import (
     PlayerSlotResponse,
     RoomCreateRequest,
@@ -20,6 +24,8 @@ from app.schemas.room import (
     RoomResponse,
     RoomStartResponse,
 )
+from app.websocket.event_bus import event_bus
+from app.websocket.reconnection import reconnection_manager
 
 router = APIRouter(prefix="/api/v1/rooms", tags=["rooms"])
 
@@ -172,11 +178,32 @@ async def start_game(
     room_id: str,
     db: AsyncSession = Depends(get_db),
 ):
-    """Start the game in a room. Room must be full with all players ready."""
+    """Start the game in a room. Room must be full with all players ready.
+
+    Creates DB records via RoomManager, then initialises a GameEngine
+    instance which drives the entire game lifecycle (phase transitions,
+    timeout scheduling, event broadcasting).
+    """
     try:
         game = await room_manager.start_game(db, room_id)
     except ValueError as e:
         raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail=str(e))
+
+    # Create and register a GameEngine for this game
+    scheduler = TimeoutScheduler()
+    engine = engine_registry.create(
+        game.id,
+        event_bus=event_bus,
+        scheduler=scheduler,
+        reconnection_manager=reconnection_manager,
+    )
+
+    # Kick off the game lifecycle in a background task so the HTTP
+    # response returns immediately.
+    asyncio.create_task(
+        engine.start_game(),
+        name=f"game-engine:{game.id}",
+    )
 
     return RoomStartResponse(
         room_id=room_id,

@@ -12,7 +12,7 @@ from app.api.v1.games import router as games_router
 from app.api.v1.roles import router as roles_router
 from app.api.v1.rooms import router as rooms_router
 from app.api.v1.spectator import router as spectator_router
-from app.api.v1.stats import router as stats_router
+from app.api.v1.stats import game_router as stats_game_router, stats_router as stats_api_router
 from app.config import settings
 from app.websocket.event_bus import event_bus
 from app.websocket.server import socket_app
@@ -59,7 +59,8 @@ app.include_router(rooms_router)
 app.include_router(games_router)
 app.include_router(roles_router)
 app.include_router(spectator_router)
-app.include_router(stats_router)
+app.include_router(stats_game_router)
+app.include_router(stats_api_router)
 
 # Mount Socket.IO ASGI app
 app.mount("/ws", socket_app)
