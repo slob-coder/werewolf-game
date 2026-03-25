@@ -149,7 +149,7 @@ class TestRoomInfo:
         room = RoomInfo(
             id="room-1",
             name="Test Room",
-            status="open",
+            status="waiting",
             player_count=9,
             current_players=3,
         )

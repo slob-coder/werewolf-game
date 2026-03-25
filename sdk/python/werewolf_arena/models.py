@@ -51,9 +51,9 @@ class ActionType(str, Enum):
 
 
 class RoomStatus(str, Enum):
-    OPEN = "open"
-    FULL = "full"
-    IN_PROGRESS = "in_progress"
+    WAITING = "waiting"
+    READY = "ready"
+    PLAYING = "playing"
     FINISHED = "finished"
     CANCELLED = "cancelled"
 

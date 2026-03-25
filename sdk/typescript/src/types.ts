@@ -44,9 +44,9 @@ export enum ActionType {
 }
 
 export enum RoomStatus {
-  OPEN = 'open',
-  FULL = 'full',
-  IN_PROGRESS = 'in_progress',
+  WAITING = 'waiting',
+  READY = 'ready',
+  PLAYING = 'playing',
   FINISHED = 'finished',
   CANCELLED = 'cancelled',
 }
