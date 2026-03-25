@@ -92,8 +92,8 @@ class WerewolfAgent:
         auth = {"api_key": key, "game_id": self._game_id}
         try:
             await self._sio.connect(
-                f"{url}/ws",
-                socketio_path="/socket.io",
+                url,
+                socketio_path="/ws/socket.io",
                 namespaces=["/agent"],
                 auth=auth,
                 wait_timeout=15,
