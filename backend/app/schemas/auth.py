@@ -11,6 +11,13 @@ class UserRegisterRequest(BaseModel):
     username: str = Field(..., min_length=3, max_length=50)
     password: str = Field(..., min_length=6, max_length=128)
     email: str | None = Field(None, max_length=200)
+    captcha_id: str = Field(..., min_length=1)
+    captcha_code: str = Field(..., min_length=4, max_length=6)
+
+
+class CaptchaResponse(BaseModel):
+    captcha_id: str
+    captcha_image: str  # base64 data URL
 
 
 class UserLoginRequest(BaseModel):

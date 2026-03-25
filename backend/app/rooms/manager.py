@@ -228,7 +228,7 @@ class RoomManager:
         room = Room(
             name=request.name,
             config=config,
-            status="open",
+            status="waiting",
             created_by=created_by,
         )
         db.add(room)
@@ -246,11 +246,13 @@ class RoomManager:
         return result.scalar_one_or_none()
 
     async def list_rooms(
-        self, db: AsyncSession, status: str | None = None
+        self, db: AsyncSession, status: str | None = None, statuses: list[str] | None = None
     ) -> list[Room]:
-        """List rooms, optionally filtered by status."""
+        """List rooms, optionally filtered by status or list of statuses."""
         stmt = select(Room).order_by(Room.created_at.desc())
-        if status:
+        if statuses:
+            stmt = stmt.where(Room.status.in_(statuses))
+        elif status:
             stmt = stmt.where(Room.status == status)
         result = await db.execute(stmt)
         return list(result.scalars().all())
@@ -264,7 +266,7 @@ class RoomManager:
         room = await self.get_room(db, room_id)
         if room is None:
             raise ValueError("Room not found")
-        if room.status not in ("open", "full"):
+        if room.status != "waiting":
             raise ValueError(f"Cannot join room in status '{room.status}'")
 
         state = self._ensure_state(room)
@@ -288,7 +290,7 @@ class RoomManager:
 
         # Update room status if full
         if state.is_full:
-            room.status = "full"
+            room.status = "ready"
 
         logger.info(
             "Agent %s joined room %s at seat %d",
@@ -303,7 +305,7 @@ class RoomManager:
         room = await self.get_room(db, room_id)
         if room is None:
             raise ValueError("Room not found")
-        if room.status not in ("open", "full"):
+        if room.status not in ("waiting", "ready"):
             raise ValueError(f"Cannot leave room in status '{room.status}'")
 
         state = self._ensure_state(room)
@@ -316,9 +318,9 @@ class RoomManager:
         slot.status = "empty"
         slot.connected_at = None
 
-        # Room back to open if was full
-        if room.status == "full":
-            room.status = "open"
+        # Room back to waiting if was ready
+        if room.status == "ready":
+            room.status = "waiting"
 
         logger.info("Agent %s left room %s from seat %d", agent.id, room_id, slot.seat)
         return slot
@@ -332,7 +334,7 @@ class RoomManager:
         room = await self.get_room(db, room_id)
         if room is None:
             raise ValueError("Room not found")
-        if room.status not in ("open", "full"):
+        if room.status not in ("waiting", "ready"):
             raise ValueError(f"Cannot toggle ready in status '{room.status}'")
 
         state = self._ensure_state(room)
@@ -358,9 +360,9 @@ class RoomManager:
         room = await self.get_room(db, room_id)
         if room is None:
             raise ValueError("Room not found")
-        if room.status == "in_progress":
+        if room.status == "playing":
             raise ValueError("Game already in progress")
-        if room.status not in ("open", "full"):
+        if room.status != "ready":
             raise ValueError(f"Cannot start game in room status '{room.status}'")
 
         state = self._ensure_state(room)
@@ -410,7 +412,7 @@ class RoomManager:
                 db.add(player)
 
         # Update room status
-        room.status = "in_progress"
+        room.status = "playing"
         state.game_id = game.id
 
         await db.flush()

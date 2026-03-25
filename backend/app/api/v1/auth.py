@@ -1,6 +1,12 @@
 """API v1 router — Authentication, user, and agent management endpoints."""
 
+import base64
+import io
+import random
 import secrets
+import string
+import time
+from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
@@ -14,6 +20,7 @@ from app.schemas.auth import (
     AgentCreateRequest,
     AgentCreateResponse,
     AgentResponse,
+    CaptchaResponse,
     TokenResponse,
     UserLoginRequest,
     UserRegisterRequest,
@@ -28,6 +35,71 @@ from app.security.auth import (
 
 router = APIRouter(prefix="/api/v1", tags=["auth"])
 
+# ── Captcha storage (in-memory, production should use Redis) ───────
+
+_captcha_store: dict[str, tuple[str, float]] = {}  # captcha_id -> (code, expire_time)
+
+
+# ── Captcha ────────────────────────────────────────────────────────
+
+
+@router.get("/auth/captcha", response_model=CaptchaResponse)
+async def get_captcha():
+    """Generate a captcha image for registration."""
+    captcha_id = str(uuid4())
+    code = "".join(random.choices(string.digits, k=4))
+    _captcha_store[captcha_id] = (code, time.time() + 300)  # 5 minutes expiry
+
+    # Generate simple captcha image
+    try:
+        from PIL import Image, ImageDraw, ImageFont
+
+        width, height = 120, 40
+        img = Image.new("RGB", (width, height), color=(240, 240, 240))
+        draw = ImageDraw.Draw(img)
+
+        # Draw noise lines
+        for _ in range(4):
+            x1 = random.randint(0, width)
+            y1 = random.randint(0, height)
+            x2 = random.randint(0, width)
+            y2 = random.randint(0, height)
+            draw.line([(x1, y1), (x2, y2)], fill=(200, 200, 200), width=1)
+
+        # Draw captcha text
+        try:
+            font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 24)
+        except Exception:
+            font = ImageFont.load_default()
+
+        # Draw each character with slight offset
+        for i, char in enumerate(code):
+            x = 20 + i * 22 + random.randint(-3, 3)
+            y = 8 + random.randint(-2, 2)
+            draw.text((x, y), char, fill=(30, 30, 30), font=font)
+
+        # Draw noise dots
+        for _ in range(20):
+            x = random.randint(0, width)
+            y = random.randint(0, height)
+            draw.point((x, y), fill=(random.randint(100, 200), random.randint(100, 200), random.randint(100, 200)))
+
+        # Convert to base64
+        buffer = io.BytesIO()
+        img.save(buffer, format="PNG")
+        img_base64 = base64.b64encode(buffer.getvalue()).decode()
+
+        return CaptchaResponse(
+            captcha_id=captcha_id,
+            captcha_image=f"data:image/png;base64,{img_base64}",
+        )
+    except ImportError:
+        # Fallback: return code directly (for dev without PIL)
+        return CaptchaResponse(
+            captcha_id=captcha_id,
+            captcha_image=f"data:text/plain;base64,{base64.b64encode(code.encode()).decode()}",
+        )
+
 
 # ── User auth ────────────────────────────────────────────────────
 
@@ -35,6 +107,19 @@ router = APIRouter(prefix="/api/v1", tags=["auth"])
 @router.post("/auth/register", response_model=UserResponse, status_code=201)
 async def register(body: UserRegisterRequest, db: AsyncSession = Depends(get_db)):
     """Register a new user account."""
+    # Verify captcha
+    stored = _captcha_store.get(body.captcha_id)
+    if stored is None:
+        raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="验证码无效或已过期")
+    code, expire_time = stored
+    if time.time() > expire_time:
+        del _captcha_store[body.captcha_id]
+        raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="验证码已过期")
+    if code != body.captcha_code:
+        raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="验证码错误")
+    # One-time use
+    del _captcha_store[body.captcha_id]
+
     # Check for existing username
     existing = await db.execute(select(User).where(User.username == body.username))
     if existing.scalar_one_or_none() is not None:

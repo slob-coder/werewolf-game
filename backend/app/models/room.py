@@ -20,7 +20,7 @@ class Room(Base):
     )
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     config: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
-    status: Mapped[str] = mapped_column(String(20), default="open", nullable=False)
+    status: Mapped[str] = mapped_column(String(20), default="waiting", nullable=False)
     created_by: Mapped[str | None] = mapped_column(
         UUID(as_uuid=False), ForeignKey("users.id"), nullable=True
     )

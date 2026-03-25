@@ -2,14 +2,11 @@ import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { getRooms, createRoom } from '@/services/api'
 import { useAuthStore } from '@/stores/authStore'
-import type { RoomInfo } from '@/types/api'
+import type { RoomInfo, RoomStatus } from '@/types/api'
+import { ROOM_STATUS_CONFIG } from '@/types/api'
 import LoadingSpinner from '@/components/common/LoadingSpinner'
 
-const STATUS_CONFIG: Record<string, { label: string; color: string; icon: string }> = {
-  waiting: { label: '等待中', color: 'text-green-400', icon: '⏳' },
-  playing: { label: '游戏中', color: 'text-yellow-400', icon: '🎮' },
-  finished: { label: '已结束', color: 'text-gray-400', icon: '✅' },
-}
+const STATUS_CONFIG = ROOM_STATUS_CONFIG
 
 export default function HomePage() {
   const navigate = useNavigate()
@@ -51,7 +48,7 @@ export default function HomePage() {
     try {
       setCreating(true)
       setCreateError(null)
-      const room = await createRoom(roomName.trim(), playerCount, 'standard')
+      const room = await createRoom(roomName.trim(), playerCount)
       setShowCreateModal(false)
       setRoomName('')
       navigate(`/rooms/${room.id}`)
@@ -187,7 +184,7 @@ export default function HomePage() {
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
           {rooms.map((room) => {
-            const status = STATUS_CONFIG[room.status] ?? STATUS_CONFIG.waiting
+            const status = STATUS_CONFIG[room.status as RoomStatus] ?? STATUS_CONFIG.waiting
             return (
               <Link
                 key={room.id}
@@ -203,7 +200,7 @@ export default function HomePage() {
                   </span>
                 </div>
                 <div className="flex items-center gap-4 text-xs text-gray-400">
-                  <span>👥 {room.current_players}/{room.max_players}</span>
+                  <span>👥 {room.current_players}/{room.player_count}</span>
                   <span>🎭 {room.role_preset ?? 'standard'}</span>
                 </div>
 

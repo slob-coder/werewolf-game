@@ -35,8 +35,8 @@ sio.register_namespace(spectator_namespace)
 sio.register_namespace(lobby_namespace)
 
 # ASGI app to mount on FastAPI
-socket_app = socketio.ASGIApp(sio)
-
+#socket_app = socketio.ASGIApp(sio)
+socket_app = socketio.ASGIApp(sio, socketio_path="ws/socket.io")
 
 def get_sio() -> socketio.AsyncServer:
     """Return the Socket.IO server instance."""

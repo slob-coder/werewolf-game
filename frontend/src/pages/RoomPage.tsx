@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { getRoom } from '@/services/api'
-import type { RoomInfo } from '@/types/api'
+import type { RoomInfo, RoomStatus } from '@/types/api'
+import { ROOM_STATUS_CONFIG } from '@/types/api'
 import LoadingSpinner from '@/components/common/LoadingSpinner'
 
 export default function RoomPage() {
@@ -46,6 +47,8 @@ export default function RoomPage() {
     )
   }
 
+  const statusConfig = ROOM_STATUS_CONFIG[room.status as RoomStatus] ?? ROOM_STATUS_CONFIG.waiting
+
   return (
     <div className="max-w-2xl mx-auto py-8">
       <Link to="/" className="text-sm text-gray-400 hover:text-white mb-4 inline-block">
@@ -61,19 +64,21 @@ export default function RoomPage() {
             </p>
           </div>
           <span className={`
-            px-3 py-1 rounded-full text-xs font-medium
-            ${room.status === 'waiting' ? 'bg-green-900/50 text-green-400' : ''}
-            ${room.status === 'playing' ? 'bg-yellow-900/50 text-yellow-400' : ''}
-            ${room.status === 'finished' ? 'bg-gray-800 text-gray-400' : ''}
+            px-3 py-1 rounded-full text-xs font-medium ${statusConfig.color}
+            ${room.status === 'waiting' ? 'bg-green-900/50' : ''}
+            ${room.status === 'ready' ? 'bg-blue-900/50' : ''}
+            ${room.status === 'playing' ? 'bg-yellow-900/50' : ''}
+            ${room.status === 'finished' ? 'bg-gray-800' : ''}
+            ${room.status === 'cancelled' ? 'bg-red-900/50' : ''}
           `}>
-            {room.status === 'waiting' ? '等待中' : room.status === 'playing' ? '游戏中' : '已结束'}
+            {statusConfig.icon} {statusConfig.label}
           </span>
         </div>
 
         <div className="mb-6 grid grid-cols-3 gap-4 text-center">
           <div className="bg-werewolf-dark rounded-lg p-3">
             <div className="text-xl font-bold text-gray-200">
-              {room.current_players}/{room.max_players}
+              {room.current_players}/{room.player_count}
             </div>
             <div className="text-xs text-gray-500">玩家数</div>
           </div>
@@ -85,7 +90,7 @@ export default function RoomPage() {
           </div>
           <div className="bg-werewolf-dark rounded-lg p-3">
             <div className="text-xl font-bold text-gray-200">
-              {room.status === 'playing' ? '🎮' : room.status === 'finished' ? '✅' : '⏳'}
+              {statusConfig.icon}
             </div>
             <div className="text-xs text-gray-500">状态</div>
           </div>
@@ -110,7 +115,7 @@ export default function RoomPage() {
                 <div className="text-xs text-gray-400 truncate">
                   {slot.agent_name ?? '空座位'}
                 </div>
-                {slot.ready && (
+                {slot.status === 'ready' && (
                   <span className="text-[10px] text-green-400">✓ 已准备</span>
                 )}
               </div>

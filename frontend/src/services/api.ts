@@ -4,7 +4,7 @@ import type {
   UserInfo,
   AgentInfo,
   RoomInfo,
-  PaginatedResponse,
+  CaptchaResponse,
 } from '@/types/api'
 import type { ReplayData } from '@/types/game'
 
@@ -42,9 +42,20 @@ api.interceptors.response.use(
 
 // ── Auth ──────────────────────────────────────────────
 
-export async function register(username: string, password: string, email?: string): Promise<AuthTokens> {
+export async function getCaptcha(): Promise<CaptchaResponse> {
+  const { data } = await api.get('/auth/captcha')
+  return data
+}
+
+export async function register(
+  username: string,
+  password: string,
+  captchaId: string,
+  captchaCode: string,
+  email?: string
+): Promise<AuthTokens> {
   // Register returns UserResponse (no token), so we need to login after
-  await api.post('/auth/register', { username, password, email })
+  await api.post('/auth/register', { username, password, email, captcha_id: captchaId, captcha_code: captchaCode })
   // Auto-login after successful registration
   return login(username, password)
 }
@@ -77,8 +88,8 @@ export async function deleteAgent(agentId: string): Promise<void> {
 
 // ── Rooms ─────────────────────────────────────────────
 
-export async function getRooms(page = 1, pageSize = 20): Promise<RoomInfo[]> {
-  const { data } = await api.get('/rooms', { params: { status: 'waiting' } })
+export async function getRooms(): Promise<RoomInfo[]> {
+  const { data } = await api.get('/rooms')
   return Array.isArray(data) ? data : []
 }
 
@@ -87,13 +98,18 @@ export async function getRoom(roomId: string): Promise<RoomInfo> {
   return data
 }
 
-export async function createRoom(name: string, playerCount = 9, rolePreset = 'classic_9p'): Promise<RoomInfo> {
+// Map player count to role preset
+const PLAYER_COUNT_TO_PRESET: Record<number, string> = {
+  6: 'simple_6',
+  9: 'standard_9',
+  12: 'standard_12',
+}
+
+export async function createRoom(name: string, playerCount = 9): Promise<RoomInfo> {
   const { data } = await api.post('/rooms', {
     name,
-    config: {
-      player_count: playerCount,
-      preset: rolePreset,
-    },
+    player_count: playerCount,
+    role_preset: PLAYER_COUNT_TO_PRESET[playerCount] || 'standard_9',
   })
   return data
 }

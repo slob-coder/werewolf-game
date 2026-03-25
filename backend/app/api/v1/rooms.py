@@ -93,8 +93,12 @@ async def list_rooms(
     status: str | None = Query(None, description="Filter by room status"),
     db: AsyncSession = Depends(get_db),
 ):
-    """List rooms with optional status filter."""
-    rooms = await room_manager.list_rooms(db, status=status)
+    """List rooms with optional status filter. Defaults to showing joinable rooms."""
+    # Default: show waiting and ready rooms (joinable/watchable)
+    if status is None:
+        rooms = await room_manager.list_rooms(db, statuses=["waiting", "ready"])
+    else:
+        rooms = await room_manager.list_rooms(db, status=status)
     result = []
     for r in rooms:
         slots = room_manager.get_slots(r.id)
