@@ -3,7 +3,7 @@
 from datetime import datetime
 from uuid import uuid4
 
-from sqlalchemy import String, func
+from sqlalchemy import String, func, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -19,7 +19,7 @@ class AccessKey(Base):
         UUID(as_uuid=False), primary_key=True, default=lambda: str(uuid4())
     )
     user_id: Mapped[str] = mapped_column(
-        UUID(as_uuid=False), nullable=False, index=True
+        UUID(as_uuid=False), ForeignKey("users.id"), nullable=False, index=True
     )
     name: Mapped[str] = mapped_column(String(100), nullable=True)  # e.g., "CLI", "CI/CD"
     key_hash: Mapped[str] = mapped_column(String(256), nullable=False, unique=True, index=True)
