@@ -2,8 +2,14 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
+# Install system dependencies for Pillow
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libjpeg62-turbo-dev \
+    zlib1g-dev \
+    && rm -rf /var/lib/apt/lists/*
+
 # Install poetry
-RUN pip install --no-cache-dir poetry==1.8.5
+RUN pip install --no-cache-dir poetry==2.3.2
 
 # Copy dependency files
 COPY pyproject.toml poetry.lock* ./
@@ -11,15 +17,12 @@ COPY pyproject.toml poetry.lock* ./
 # Configure poetry: no virtualenvs in container
 RUN poetry config virtualenvs.create false
 
-# Install dependencies (skip dev deps for prod, include for dev)
-RUN poetry install --no-interaction --no-ansi --no-root || \
-    poetry install --no-interaction --no-ansi --no-root --no-dev 2>/dev/null || true
+# Regenerate lock file and install dependencies (not the project itself)
+RUN poetry lock
+RUN poetry install --no-interaction --no-ansi --no-root
 
 # Copy application code
 COPY . .
-
-# Install the project itself
-RUN poetry install --no-interaction --no-ansi --only-root 2>/dev/null || true
 
 EXPOSE 8000
 
