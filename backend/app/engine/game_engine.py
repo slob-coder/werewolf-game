@@ -10,7 +10,7 @@ from __future__ import annotations
 import logging
 import random
 from collections import Counter
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Any
 
 from sqlalchemy import select, update
@@ -815,7 +815,7 @@ class GameEngine:
         async with async_session_factory() as db:
             game = await self._get_game(db)
             game.status = "finished"
-            game.finished_at = datetime.now(timezone.utc)
+            game.finished_at = datetime.utcnow()
             game.winner = winner
             game.win_reason = win_reason
             await db.commit()
