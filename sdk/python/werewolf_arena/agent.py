@@ -93,6 +93,7 @@ class WerewolfAgent:
         try:
             await self._sio.connect(
                 f"{url}/ws",
+                socketio_path="/socket.io",
                 namespaces=["/agent"],
                 auth=auth,
                 wait_timeout=15,
