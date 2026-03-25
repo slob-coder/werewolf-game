@@ -17,6 +17,7 @@ from werewolf_arena.models import (
     PlayerInfo,
     RoleConfig,
     RoomInfo,
+    RoomStatus,
 )
 
 __all__ = [
@@ -30,6 +31,7 @@ __all__ = [
     "PlayerInfo",
     "RoleConfig",
     "RoomInfo",
+    "RoomStatus",
     "ArenaError",
     "ArenaAPIError",
     "ArenaConnectionError",
