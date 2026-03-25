@@ -8,6 +8,7 @@ import RoomPage from './pages/RoomPage'
 import GamePage from './pages/GamePage'
 import ReplayPage from './pages/ReplayPage'
 import AgentsPage from './pages/AgentsPage'
+import AccessKeysPage from './pages/AccessKeysPage'
 
 function App() {
   return (
@@ -37,6 +38,7 @@ function App() {
               }
             />
             <Route path="/agents" element={<AgentsPage />} />
+            <Route path="/access-keys" element={<AccessKeysPage />} />
           </Routes>
         </main>
       </div>

@@ -7,12 +7,14 @@ interface AuthState {
   isAuthenticated: boolean
   loading: boolean
   error: string | null
+  newAccessKey: string | null  // Access key shown after registration
 
   login: (username: string, password: string) => Promise<void>
-  register: (username: string, password: string, captchaId: string, captchaCode: string, email?: string) => Promise<void>
+  register: (username: string, password: string, captchaId: string, captchaCode: string, email?: string) => Promise<string | undefined>
   logout: () => void
   setToken: (token: string, username?: string) => void
   clearError: () => void
+  clearNewAccessKey: () => void
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -21,6 +23,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   isAuthenticated: !!localStorage.getItem('token'),
   loading: false,
   error: null,
+  newAccessKey: null,
 
   login: async (username: string, password: string) => {
     set({ loading: true, error: null })
@@ -42,7 +45,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   register: async (username: string, password: string, captchaId: string, captchaCode: string, email?: string) => {
-    set({ loading: true, error: null })
+    set({ loading: true, error: null, newAccessKey: null })
     try {
       const result = await apiRegister(username, password, captchaId, captchaCode, email)
       localStorage.setItem('token', result.access_token)
@@ -52,7 +55,9 @@ export const useAuthStore = create<AuthState>((set) => ({
         username,
         isAuthenticated: true,
         loading: false,
+        newAccessKey: result.access_key || null,
       })
+      return result.access_key
     } catch (err: unknown) {
       const message = (err instanceof Error) ? err.message : '注册失败'
       set({ error: message, loading: false })
@@ -63,7 +68,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   logout: () => {
     localStorage.removeItem('token')
     localStorage.removeItem('username')
-    set({ token: null, username: null, isAuthenticated: false })
+    set({ token: null, username: null, isAuthenticated: false, newAccessKey: null })
   },
 
   setToken: (token: string, username?: string) => {
@@ -73,4 +78,5 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   clearError: () => set({ error: null }),
+  clearNewAccessKey: () => set({ newAccessKey: null }),
 }))

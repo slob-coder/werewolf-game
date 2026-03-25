@@ -26,6 +26,24 @@ export interface UserInfo {
   created_at: string
 }
 
+export interface RegisterResponse extends UserInfo {
+  access_key?: string
+}
+
+// ── Access Keys ────────────────────────────────────────────────────
+
+export interface AccessKeyInfo {
+  id: string
+  name?: string
+  is_active: boolean
+  last_used_at?: string
+  created_at: string
+}
+
+export interface AccessKeyCreateResponse extends AccessKeyInfo {
+  key: string
+}
+
 export interface AgentInfo {
   id: string
   name: string

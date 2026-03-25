@@ -5,6 +5,9 @@ import type {
   AgentInfo,
   RoomInfo,
   CaptchaResponse,
+  RegisterResponse,
+  AccessKeyInfo,
+  AccessKeyCreateResponse,
 } from '@/types/api'
 import type { ReplayData } from '@/types/game'
 
@@ -53,11 +56,16 @@ export async function register(
   captchaId: string,
   captchaCode: string,
   email?: string
-): Promise<AuthTokens> {
-  // Register returns UserResponse (no token), so we need to login after
-  await api.post('/auth/register', { username, password, email, captcha_id: captchaId, captcha_code: captchaCode })
+): Promise<AuthTokens & { access_key?: string }> {
+  // Register returns UserRegisterResponse with access_key
+  const { data: user } = await api.post<RegisterResponse>('/auth/register', { 
+    username, password, email, captcha_id: captchaId, captcha_code: captchaCode 
+  })
+  
   // Auto-login after successful registration
-  return login(username, password)
+  const { data: tokens } = await api.post<AuthTokens>('/auth/login', { username, password })
+  
+  return { ...tokens, access_key: user.access_key }
 }
 
 export async function login(username: string, password: string): Promise<AuthTokens> {
@@ -68,6 +76,22 @@ export async function login(username: string, password: string): Promise<AuthTok
 export async function getMe(): Promise<UserInfo> {
   const { data } = await api.get('/auth/me')
   return data
+}
+
+// ── Access Keys ────────────────────────────────────────────
+
+export async function getMyAccessKeys(): Promise<AccessKeyInfo[]> {
+  const { data } = await api.get('/access-keys')
+  return data
+}
+
+export async function createAccessKey(name?: string): Promise<AccessKeyCreateResponse> {
+  const { data } = await api.post('/access-keys', name ? { name } : {})
+  return data
+}
+
+export async function revokeAccessKey(keyId: string): Promise<void> {
+  await api.delete(`/access-keys/${keyId}`)
 }
 
 // ── Agents ────────────────────────────────────────────

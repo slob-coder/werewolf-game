@@ -13,7 +13,8 @@ export default function RegisterPage() {
   const [captcha, setCaptcha] = useState<CaptchaResponse | null>(null)
   const [captchaLoading, setCaptchaLoading] = useState(false)
   const [localError, setLocalError] = useState<string | null>(null)
-  const { register, loading, error, clearError } = useAuthStore()
+  const [showAccessKey, setShowAccessKey] = useState(false)
+  const { register, loading, error, clearError, newAccessKey } = useAuthStore()
   const navigate = useNavigate()
 
   // Load captcha on mount
@@ -58,14 +59,52 @@ export default function RegisterPage() {
     }
 
     try {
-      await register(username, password, captcha.captcha_id, captchaInput, email || undefined)
-      navigate('/')
+      const accessKey = await register(username, password, captcha.captcha_id, captchaInput, email || undefined)
+      if (accessKey) {
+        setShowAccessKey(true)
+      } else {
+        navigate('/')
+      }
     } catch {
       // error is set in store
     }
   }
 
   const displayError = localError ?? error
+
+  // Show access key after successful registration
+  if (showAccessKey && newAccessKey) {
+    return (
+      <div className="min-h-[80vh] flex items-center justify-center">
+        <div className="w-full max-w-md bg-werewolf-mid border border-gray-700 rounded-lg p-8">
+          <div className="text-center mb-6">
+            <div className="text-5xl mb-3">🎉</div>
+            <h1 className="text-2xl font-bold text-gray-200">注册成功！</h1>
+            <p className="text-sm text-gray-500 mt-2">请保存以下 Access Key（仅显示一次）</p>
+          </div>
+
+          <div className="bg-green-950/50 border border-green-800/50 rounded-lg p-4 mb-6">
+            <p className="text-sm text-green-400 font-semibold mb-2">
+              🔑 你的 Access Key
+            </p>
+            <code className="block bg-black/30 p-3 rounded text-sm text-green-300 break-all select-all font-mono">
+              {newAccessKey}
+            </code>
+            <p className="text-xs text-green-400/70 mt-2">
+              此 Key 用于 CLI 初始化，请妥善保存。如丢失可在「Access Keys」页面创建新的。
+            </p>
+          </div>
+
+          <button
+            onClick={() => navigate('/')}
+            className="w-full py-2 bg-werewolf-accent rounded-lg font-semibold hover:bg-red-600 transition"
+          >
+            进入首页
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-[80vh] flex items-center justify-center">
