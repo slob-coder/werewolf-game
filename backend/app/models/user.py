@@ -26,3 +26,4 @@ class User(Base):
 
     # Relationships
     agents = relationship("Agent", back_populates="owner", lazy="selectin")
+    access_keys = relationship("AccessKey", back_populates="user", lazy="selectin")

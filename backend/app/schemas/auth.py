@@ -25,6 +25,14 @@ class UserLoginRequest(BaseModel):
     password: str
 
 
+class AccessTokenByAccessKeyRequest(BaseModel):
+    access_key: str = Field(..., description="Access Key (ak_xxx format)")
+
+
+class AccessKeyCreateRequest(BaseModel):
+    name: str | None = Field(None, max_length=100, description="Optional name for the key")
+
+
 # ── Response schemas ─────────────────────────────────────────────
 
 class TokenResponse(BaseModel):
@@ -40,6 +48,26 @@ class UserResponse(BaseModel):
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class UserRegisterResponse(UserResponse):
+    """Returned after registration — includes the first access key (shown once)."""
+    access_key: str | None = None
+
+
+class AccessKeyResponse(BaseModel):
+    id: str
+    name: str | None = None
+    is_active: bool
+    last_used_at: datetime | None = None
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class AccessKeyCreateResponse(AccessKeyResponse):
+    """Returned only on creation — includes the raw key (shown once)."""
+    key: str
 
 
 # ── Agent schemas ────────────────────────────────────────────────

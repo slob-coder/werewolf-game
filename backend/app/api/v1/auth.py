@@ -6,6 +6,7 @@ import random
 import secrets
 import string
 import time
+from datetime import datetime
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -14,9 +15,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.status import HTTP_400_BAD_REQUEST, HTTP_404_NOT_FOUND
 
 from app.dependencies import get_current_user, get_db
+from app.models.access_key import AccessKey
 from app.models.agent import Agent
 from app.models.user import User
 from app.schemas.auth import (
+    AccessKeyCreateRequest,
+    AccessKeyCreateResponse,
+    AccessKeyResponse,
+    AccessTokenByAccessKeyRequest,
     AgentCreateRequest,
     AgentCreateResponse,
     AgentResponse,
@@ -24,6 +30,7 @@ from app.schemas.auth import (
     TokenResponse,
     UserLoginRequest,
     UserRegisterRequest,
+    UserRegisterResponse,
     UserResponse,
 )
 from app.security.auth import (
@@ -101,12 +108,22 @@ async def get_captcha():
         )
 
 
+# ── Access Key ────────────────────────────────────────────────────
+
+ACCESS_KEY_PREFIX = "ak_"
+
+
+def generate_access_key() -> str:
+    """Generate a new access key with ak_ prefix."""
+    return ACCESS_KEY_PREFIX + secrets.token_urlsafe(24)
+
+
 # ── User auth ────────────────────────────────────────────────────
 
 
-@router.post("/auth/register", response_model=UserResponse, status_code=201)
+@router.post("/auth/register", response_model=UserRegisterResponse, status_code=201)
 async def register(body: UserRegisterRequest, db: AsyncSession = Depends(get_db)):
-    """Register a new user account."""
+    """Register a new user account and create first access key."""
     # Verify captcha
     stored = _captcha_store.get(body.captcha_id)
     if stored is None:
@@ -139,7 +156,25 @@ async def register(body: UserRegisterRequest, db: AsyncSession = Depends(get_db)
     db.add(user)
     await db.flush()
     await db.refresh(user)
-    return user
+
+    # Create first access key
+    raw_key = generate_access_key()
+    access_key = AccessKey(
+        user_id=user.id,
+        name="Default",
+        key_hash=hash_api_key(raw_key),
+    )
+    db.add(access_key)
+    await db.flush()
+
+    return UserRegisterResponse(
+        id=user.id,
+        username=user.username,
+        email=user.email,
+        role=user.role,
+        created_at=user.created_at,
+        access_key=raw_key,
+    )
 
 
 @router.post("/auth/login", response_model=TokenResponse)
@@ -155,10 +190,108 @@ async def login(body: UserLoginRequest, db: AsyncSession = Depends(get_db)):
     return TokenResponse(access_token=token)
 
 
+@router.post("/auth/token-by-access-key", response_model=TokenResponse)
+async def token_by_access_key(
+    body: AccessTokenByAccessKeyRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """Exchange an access key for a JWT token (for CLI authentication)."""
+    # Validate key format
+    if not body.access_key.startswith(ACCESS_KEY_PREFIX):
+        raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="Invalid access key format")
+
+    # Find the access key
+    key_hash = hash_api_key(body.access_key)
+    result = await db.execute(
+        select(AccessKey).where(AccessKey.key_hash == key_hash, AccessKey.is_active.is_(True))
+    )
+    access_key = result.scalar_one_or_none()
+
+    if access_key is None:
+        raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="Invalid or revoked access key")
+
+    # Get user
+    user_result = await db.execute(select(User).where(User.id == access_key.user_id))
+    user = user_result.scalar_one_or_none()
+
+    if user is None:
+        raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="User not found")
+
+    # Update last_used_at
+    access_key.last_used_at = datetime.utcnow()
+    await db.flush()
+
+    # Create JWT
+    token = create_access_token(data={"sub": user.id, "username": user.username})
+    return TokenResponse(access_token=token)
+
+
 @router.get("/auth/me", response_model=UserResponse)
 async def get_me(current_user: User = Depends(get_current_user)):
     """Return the currently authenticated user."""
     return current_user
+
+
+# ── Access Key management ────────────────────────────────────────
+
+
+@router.get("/access-keys", response_model=list[AccessKeyResponse])
+async def list_access_keys(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """List all access keys for the current user."""
+    result = await db.execute(
+        select(AccessKey)
+        .where(AccessKey.user_id == current_user.id)
+        .order_by(AccessKey.created_at.desc())
+    )
+    return result.scalars().all()
+
+
+@router.post("/access-keys", response_model=AccessKeyCreateResponse, status_code=201)
+async def create_access_key(
+    body: AccessKeyCreateRequest | None = None,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Create a new access key."""
+    raw_key = generate_access_key()
+    access_key = AccessKey(
+        user_id=current_user.id,
+        name=body.name if body else None,
+        key_hash=hash_api_key(raw_key),
+    )
+    db.add(access_key)
+    await db.flush()
+    await db.refresh(access_key)
+
+    return AccessKeyCreateResponse(
+        id=access_key.id,
+        name=access_key.name,
+        is_active=access_key.is_active,
+        last_used_at=access_key.last_used_at,
+        created_at=access_key.created_at,
+        key=raw_key,
+    )
+
+
+@router.delete("/access-keys/{key_id}", status_code=204)
+async def revoke_access_key(
+    key_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Revoke an access key (soft delete by setting is_active=False)."""
+    result = await db.execute(
+        select(AccessKey).where(AccessKey.id == key_id, AccessKey.user_id == current_user.id)
+    )
+    access_key = result.scalar_one_or_none()
+    if access_key is None:
+        raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="Access key not found")
+
+    access_key.is_active = False
+    await db.flush()
 
 
 # ── Agent management ────────────────────────────────────────────
@@ -207,6 +340,22 @@ async def list_agents(
         .order_by(Agent.created_at.desc())
     )
     return result.scalars().all()
+
+
+@router.get("/agents/{agent_id}", response_model=AgentResponse)
+async def get_agent(
+    agent_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get a specific agent by ID."""
+    result = await db.execute(
+        select(Agent).where(Agent.id == agent_id, Agent.owner_id == current_user.id)
+    )
+    agent = result.scalar_one_or_none()
+    if agent is None:
+        raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="Agent not found")
+    return agent
 
 
 @router.delete("/agents/{agent_id}", status_code=204)

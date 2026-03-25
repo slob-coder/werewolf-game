@@ -1,5 +1,6 @@
 """Database models package — import all models so Alembic can detect them."""
 
+from app.models.access_key import AccessKey  # noqa: F401
 from app.models.action import GameAction  # noqa: F401
 from app.models.agent import Agent  # noqa: F401
 from app.models.event import GameEvent  # noqa: F401
@@ -11,6 +12,7 @@ from app.models.user import User  # noqa: F401
 __all__ = [
     "User",
     "Agent",
+    "AccessKey",
     "Room",
     "Game",
     "GamePlayer",
