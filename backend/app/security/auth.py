@@ -1,5 +1,6 @@
 """Security utilities — password hashing and JWT tokens."""
 
+import hashlib
 from datetime import datetime, timedelta, timezone
 
 from jose import JWTError, jwt
@@ -20,14 +21,16 @@ def verify_password(plain: str, hashed: str) -> bool:
     return pwd_context.verify(plain, hashed)
 
 
-# ── API Key hashing (same bcrypt, but separate helpers for clarity) ──
+# ── API Key hashing (SHA-256 for deterministic lookup) ──
 
 def hash_api_key(api_key: str) -> str:
-    return pwd_context.hash(api_key)
+    """Hash API key using SHA-256 for deterministic lookup."""
+    return hashlib.sha256(api_key.encode()).hexdigest()
 
 
 def verify_api_key(plain_key: str, hashed_key: str) -> bool:
-    return pwd_context.verify(plain_key, hashed_key)
+    """Verify API key by comparing SHA-256 hashes."""
+    return hash_api_key(plain_key) == hashed_key
 
 
 # ── JWT ──────────────────────────────────────────────────────────
