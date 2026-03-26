@@ -20,6 +20,7 @@ export default function Header() {
           <Link to="/" className="hover:text-white transition">房间</Link>
           <Link to="/agents" className="hover:text-white transition">Agents</Link>
           <Link to="/access-keys" className="hover:text-white transition">Access Keys</Link>
+          <Link to="/guide" className="hover:text-white transition">使用说明</Link>
           {isAuthenticated ? (
             <div className="flex items-center gap-4">
               <span className="text-sm text-gray-400">

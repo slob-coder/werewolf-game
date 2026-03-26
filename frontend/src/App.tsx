@@ -9,6 +9,7 @@ import GamePage from './pages/GamePage'
 import ReplayPage from './pages/ReplayPage'
 import AgentsPage from './pages/AgentsPage'
 import AccessKeysPage from './pages/AccessKeysPage'
+import GuidePage from './pages/GuidePage'
 
 function App() {
   return (
@@ -39,6 +40,7 @@ function App() {
             />
             <Route path="/agents" element={<AgentsPage />} />
             <Route path="/access-keys" element={<AccessKeysPage />} />
+            <Route path="/guide" element={<GuidePage />} />
           </Routes>
         </main>
       </div>
