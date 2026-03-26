@@ -45,6 +45,7 @@ class RoomResponse(BaseModel):
     player_count: int
     current_players: int
     slots: list[PlayerSlotResponse]
+    current_game_id: str | None = None  # 当前进行中的游戏 ID
 
     model_config = {"from_attributes": True}
 

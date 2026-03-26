@@ -38,6 +38,23 @@ def _build_room_response(room, slots) -> RoomResponse:
     config = room.config or {}
     player_count = config.get("player_count", 9)
     current_players = sum(1 for s in slots if s.status != "empty")
+    
+    # Find current in-progress game (latest one if multiple)
+    current_game_id = None
+    if room.games:
+        # Get the most recent in-progress game
+        in_progress_games = [
+            g for g in room.games 
+            if g.status == "in_progress"
+        ]
+        if in_progress_games:
+            # Sort by started_at descending, take the first
+            current_game_id = sorted(
+                in_progress_games, 
+                key=lambda g: g.started_at, 
+                reverse=True
+            )[0].id
+    
     return RoomResponse(
         id=room.id,
         name=room.name,
@@ -56,6 +73,7 @@ def _build_room_response(room, slots) -> RoomResponse:
             )
             for s in slots
         ],
+        current_game_id=current_game_id,
     )
 
 
