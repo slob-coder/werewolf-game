@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.auth import router as auth_router
 from app.api.v1.games import router as games_router
+from app.api.v1.reports import router as reports_router
 from app.api.v1.roles import router as roles_router
 from app.api.v1.rooms import router as rooms_router
 from app.api.v1.spectator import router as spectator_router
@@ -61,6 +62,7 @@ app.include_router(roles_router)
 app.include_router(spectator_router)
 app.include_router(stats_game_router)
 app.include_router(stats_api_router)
+app.include_router(reports_router)
 
 # Mount Socket.IO ASGI app
 app.mount("/ws", socket_app)
