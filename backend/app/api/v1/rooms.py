@@ -3,7 +3,9 @@
 import asyncio
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 from starlette.status import (
     HTTP_400_BAD_REQUEST,
     HTTP_404_NOT_FOUND,
@@ -38,6 +40,16 @@ def _build_room_response(room, slots) -> RoomResponse:
     config = room.config or {}
     player_count = config.get("player_count", 9)
     current_players = sum(1 for s in slots if s.status != "empty")
+    
+    # 获取当前进行中的游戏 ID
+    current_game_id = None
+    if hasattr(room, 'games') and room.games:
+        # 从关联的游戏中找到进行中的游戏
+        for game in room.games:
+            if game.status == "in_progress":
+                current_game_id = game.id
+                break
+    
     return RoomResponse(
         id=room.id,
         name=room.name,
@@ -47,6 +59,7 @@ def _build_room_response(room, slots) -> RoomResponse:
         created_at=room.created_at,
         player_count=player_count,
         current_players=current_players,
+        current_game_id=current_game_id,
         slots=[
             PlayerSlotResponse(
                 seat=s.seat,
@@ -112,7 +125,16 @@ async def get_room(
     db: AsyncSession = Depends(get_db),
 ):
     """Get room details by ID."""
-    room = await room_manager.get_room(db, room_id)
+    # 使用 selectinload 预加载 games 关系，避免 N+1 查询
+    from app.models.room import Room as RoomModel
+    stmt = (
+        select(RoomModel)
+        .where(RoomModel.id == room_id)
+        .options(selectinload(RoomModel.games))
+    )
+    result = await db.execute(stmt)
+    room = result.scalar_one_or_none()
+    
     if room is None:
         raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="Room not found")
     # Ensure in-memory state is initialized
