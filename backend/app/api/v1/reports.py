@@ -53,6 +53,9 @@ async def submit_reports(
             timestamp = datetime.fromisoformat(
                 report.timestamp.replace("Z", "+00:00")
             )
+            # Convert to naive UTC datetime for database compatibility
+            if timestamp.tzinfo is not None:
+                timestamp = timestamp.astimezone().replace(tzinfo=None)
         except ValueError:
             # If parsing fails, use current time
             timestamp = datetime.utcnow()
