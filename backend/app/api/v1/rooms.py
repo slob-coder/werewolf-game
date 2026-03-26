@@ -3,7 +3,9 @@
 import asyncio
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 from starlette.status import (
     HTTP_400_BAD_REQUEST,
     HTTP_404_NOT_FOUND,
@@ -130,7 +132,16 @@ async def get_room(
     db: AsyncSession = Depends(get_db),
 ):
     """Get room details by ID."""
-    room = await room_manager.get_room(db, room_id)
+    # 使用 selectinload 预加载 games 关系，避免 N+1 查询
+    from app.models.room import Room as RoomModel
+    stmt = (
+        select(RoomModel)
+        .where(RoomModel.id == room_id)
+        .options(selectinload(RoomModel.games))
+    )
+    result = await db.execute(stmt)
+    room = result.scalar_one_or_none()
+    
     if room is None:
         raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="Room not found")
     # Ensure in-memory state is initialized

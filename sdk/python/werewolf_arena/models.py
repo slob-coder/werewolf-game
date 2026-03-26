@@ -128,6 +128,7 @@ class RoomInfo(BaseModel):
     status: str
     player_count: int = 0
     current_players: int = 0
+    current_game_id: Optional[str] = None  # 当前关联的游戏 ID（进行中的游戏）
     config: Dict[str, Any] = Field(default_factory=dict)
     created_at: Optional[datetime] = None
 

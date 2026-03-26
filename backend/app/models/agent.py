@@ -32,3 +32,4 @@ class Agent(Base):
 
     # Relationships
     owner = relationship("User", back_populates="agents", lazy="selectin")
+    reports = relationship("AgentReport", back_populates="agent", lazy="dynamic")

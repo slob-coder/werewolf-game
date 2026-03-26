@@ -44,6 +44,7 @@ class RoomResponse(BaseModel):
     created_at: datetime
     player_count: int
     current_players: int
+    current_game_id: str | None = None  # 当前关联的游戏 ID（进行中的游戏）
     slots: list[PlayerSlotResponse]
     current_game_id: str | None = None  # 当前进行中的游戏 ID
 

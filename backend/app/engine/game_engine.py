@@ -818,6 +818,17 @@ class GameEngine:
             game.finished_at = datetime.utcnow()
             game.winner = winner
             game.win_reason = win_reason
+            
+            room_id = game.room_id
+            
+            # 更新房间状态为 finished
+            from app.models.room import Room as RoomModel
+            stmt = select(RoomModel).where(RoomModel.id == room_id)
+            room_result = await db.execute(stmt)
+            room = room_result.scalar_one_or_none()
+            if room:
+                room.status = "finished"
+            
             await db.commit()
 
         await self._emit_event(
@@ -836,6 +847,10 @@ class GameEngine:
 
         # Cleanup reconnection state
         self._reconnection.cleanup_game(self.game_id)
+        
+        # Cleanup room in-memory state
+        from app.rooms.manager import room_manager
+        room_manager.cleanup_room(room_id)
 
         logger.info("Game %s finished. Winner: %s", self.game_id, winner)
 
