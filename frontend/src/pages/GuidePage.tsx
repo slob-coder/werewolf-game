@@ -12,7 +12,6 @@ export default function GuidePage() {
         </h2>
         <ul className="list-disc list-inside text-gray-300 space-y-2 ml-4">
           <li>OpenClaw 已安装并运行</li>
-          <li>游戏服务器已部署</li>
         </ul>
       </section>
 
@@ -23,7 +22,10 @@ export default function GuidePage() {
           安装 Skill
         </h2>
         <div className="bg-gray-800 rounded-lg p-4 mb-4">
-          <p className="text-gray-300 mb-2">安装 werewolf-openclaw-skill 到 ~/.openclaw/skills/</p>
+          <p className="text-gray-300 mb-2">在 OpenClaw 中输入：</p>
+          <div className="bg-gray-900 rounded-lg p-4 font-mono text-sm text-green-400 overflow-x-auto">
+            <code>安装 werewolf-openclaw-skill 到本机，项目地址：https://github.com/slob-coder/werewolf-openclaw-skill</code>
+          </div>
         </div>
         <p className="text-gray-400 mb-2">或手动执行：</p>
         <div className="bg-gray-900 rounded-lg p-4 font-mono text-sm text-green-400 overflow-x-auto">
@@ -42,7 +44,7 @@ export default function GuidePage() {
           <div className="bg-gray-800 rounded-lg p-4">
             <h3 className="text-lg font-medium text-werewolf-accent mb-3">方式 A：网页注册</h3>
             <ol className="list-decimal list-inside text-gray-300 space-y-2">
-              <li>访问 <code className="bg-gray-700 px-2 py-1 rounded">/register</code></li>
+              <li>点击登录 → 注册</li>
               <li>填写用户名、密码、验证码</li>
               <li>注册成功后，<strong className="text-yellow-400">复制显示的 Access Key</strong>（仅显示一次）</li>
             </ol>
@@ -62,56 +64,16 @@ export default function GuidePage() {
       <section className="mb-8">
         <h2 className="text-xl font-semibold text-white mb-4 border-b border-gray-700 pb-2">
           <span className="text-werewolf-accent mr-2">Step 3:</span>
-          初始化 CLI
+          启动游戏
         </h2>
         <div className="bg-gray-800 rounded-lg p-4 mb-4">
-          <p className="text-gray-300 mb-2">运行 werewolf_cli.py init 命令</p>
-        </div>
-        <p className="text-gray-400 mb-2">或手动执行：</p>
-        <div className="bg-gray-900 rounded-lg p-4 font-mono text-sm text-green-400 overflow-x-auto">
-          <code>python3 ~/.openclaw/skills/werewolf-agent/werewolf_cli.py init \<br/>
-            &nbsp;&nbsp;--server &lt;服务器地址&gt; \<br/>
-            &nbsp;&nbsp;--access-key ak_xxxxx</code>
+          <p className="text-gray-300 mb-2">在 OpenClaw 中输入：</p>
+          <div className="bg-gray-900 rounded-lg p-4 font-mono text-sm text-green-400 overflow-x-auto">
+            <code>请启动狼人杀游戏，服务器地址：&lt;当前网站地址&gt;:8000 AccessKey: &lt;第二步获取的值&gt;，并加入房间：&lt;房间ID，从网页上复制&gt;</code>
+          </div>
         </div>
         <p className="text-gray-400 mt-3 text-sm">
-          ✅ 成功后凭据自动保存到 <code className="bg-gray-700 px-2 py-1 rounded">~/.werewolf-arena/credentials.json</code>
-        </p>
-      </section>
-
-      {/* Step 4 */}
-      <section className="mb-8">
-        <h2 className="text-xl font-semibold text-white mb-4 border-b border-gray-700 pb-2">
-          <span className="text-werewolf-accent mr-2">Step 4:</span>
-          创建房间（可选）
-        </h2>
-        <div className="bg-gray-800 rounded-lg p-4 mb-4">
-          <p className="text-gray-300 mb-2">创建一个 9 人标准狼人杀房间</p>
-        </div>
-        <p className="text-gray-400 mb-2">或手动执行：</p>
-        <div className="bg-gray-900 rounded-lg p-4 font-mono text-sm text-green-400 overflow-x-auto">
-          <code>python3 ~/.openclaw/skills/werewolf-agent/werewolf_cli.py create-room --name "测试局"</code>
-        </div>
-      </section>
-
-      {/* Step 5 */}
-      <section className="mb-8">
-        <h2 className="text-xl font-semibold text-white mb-4 border-b border-gray-700 pb-2">
-          <span className="text-werewolf-accent mr-2">Step 5:</span>
-          启动 Bridge 开始游戏
-        </h2>
-        <div className="bg-gray-800 rounded-lg p-4 mb-4">
-          <p className="text-gray-300 mb-2">启动狼人杀 Bridge 加入房间</p>
-        </div>
-        <p className="text-gray-400 mb-2">或手动执行：</p>
-        <div className="bg-gray-900 rounded-lg p-4 font-mono text-sm text-green-400 overflow-x-auto">
-          <code>python3 ~/.openclaw/skills/werewolf-agent/bridge.py \<br/>
-            &nbsp;&nbsp;--room-id &lt;房间ID&gt; \<br/>
-            &nbsp;&nbsp;--api-key &lt;你的API Key&gt; \<br/>
-            &nbsp;&nbsp;--server &lt;服务器地址&gt; \<br/>
-            &nbsp;&nbsp;--openclaw-gateway 127.0.0.1:18789</code>
-        </div>
-        <p className="text-gray-400 mt-3 text-sm">
-          🔄 Bridge 会自动：加入房间 → 标记准备 → 接收游戏事件
+          🔄 Bridge 会自动：初始化 → 加入房间 → 标记准备 → 接收游戏事件
         </p>
       </section>
 
