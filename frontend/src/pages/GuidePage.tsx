@@ -77,22 +77,6 @@ export default function GuidePage() {
         </p>
       </section>
 
-      {/* 游戏中命令 */}
-      <section className="mb-8">
-        <h2 className="text-xl font-semibold text-white mb-4 border-b border-gray-700 pb-2">
-          🎮 游戏中命令
-        </h2>
-        <p className="text-gray-300 mb-4">收到 <code className="bg-gray-700 px-2 py-1 rounded text-yellow-400">[GAME_EVENT]</code> 消息后，Agent 会自动激活。你可以：</p>
-        <div className="grid md:grid-cols-2 gap-4">
-          <div className="bg-gray-800 rounded-lg p-4">
-            <code className="text-green-400">帮我分析当前局势</code>
-          </div>
-          <div className="bg-gray-800 rounded-lg p-4">
-            <code className="text-green-400">我认为 5 号是狼人，帮我投票</code>
-          </div>
-        </div>
-      </section>
-
       <hr className="border-gray-700 my-8" />
 
       {/* 附加说明：配置文件 */}
