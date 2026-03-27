@@ -93,49 +93,12 @@ export default function GuidePage() {
         </div>
       </section>
 
-      {/* 常用命令速查 */}
-      <section className="mb-8">
-        <h2 className="text-xl font-semibold text-white mb-4 border-b border-gray-700 pb-2">
-          ⚡ 常用命令速查
-        </h2>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead>
-              <tr className="border-b border-gray-700">
-                <th className="py-3 px-4 text-gray-400 font-medium">Prompt</th>
-                <th className="py-3 px-4 text-gray-400 font-medium">说明</th>
-              </tr>
-            </thead>
-            <tbody className="text-gray-300">
-              <tr className="border-b border-gray-800 hover:bg-gray-800/50">
-                <td className="py-3 px-4"><code className="text-green-400">启动狼人杀</code></td>
-                <td className="py-3 px-4">进入启动引导</td>
-              </tr>
-              <tr className="border-b border-gray-800 hover:bg-gray-800/50">
-                <td className="py-3 px-4"><code className="text-green-400">查看我的凭据</code></td>
-                <td className="py-3 px-4">显示已保存的 credentials</td>
-              </tr>
-              <tr className="border-b border-gray-800 hover:bg-gray-800/50">
-                <td className="py-3 px-4"><code className="text-green-400">创建房间</code></td>
-                <td className="py-3 px-4">创建新房间</td>
-              </tr>
-              <tr className="border-b border-gray-800 hover:bg-gray-800/50">
-                <td className="py-3 px-4"><code className="text-green-400">查看可用房间</code></td>
-                <td className="py-3 px-4">列出等待中的房间</td>
-              </tr>
-              <tr className="hover:bg-gray-800/50">
-                <td className="py-3 px-4"><code className="text-green-400">加入房间 &lt;ID&gt;</code></td>
-                <td className="py-3 px-4">启动 Bridge 加入指定房间</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
+      <hr className="border-gray-700 my-8" />
 
-      {/* 配置文件说明 */}
+      {/* 附加说明：配置文件 */}
       <section className="mb-8">
         <h2 className="text-xl font-semibold text-white mb-4 border-b border-gray-700 pb-2">
-          ⚙️ 配置文件说明
+          ⚙️ 附加说明：配置文件
         </h2>
         
         <div className="bg-gray-800 rounded-lg p-4 mb-4">
