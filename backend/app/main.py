@@ -5,16 +5,26 @@ from typing import AsyncGenerator
 
 import redis.asyncio as aioredis
 from fastapi import FastAPI
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy.exc import SQLAlchemyError
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.api.v1.auth import router as auth_router
 from app.api.v1.games import router as games_router
 from app.api.v1.reports import router as reports_router
 from app.api.v1.roles import router as roles_router
 from app.api.v1.rooms import router as rooms_router
+from app.api.v1.server_exceptions import router as server_exceptions_router
 from app.api.v1.spectator import router as spectator_router
 from app.api.v1.stats import game_router as stats_game_router, stats_router as stats_api_router
 from app.config import settings
+from app.utils.exception_handler import (
+    global_exception_handler,
+    http_exception_handler,
+    sqlalchemy_exception_handler,
+    validation_exception_handler,
+)
 from app.websocket.event_bus import event_bus
 from app.websocket.server import socket_app
 
@@ -45,6 +55,12 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# Register exception handlers
+app.add_exception_handler(StarletteHTTPException, http_exception_handler)
+app.add_exception_handler(RequestValidationError, validation_exception_handler)
+app.add_exception_handler(SQLAlchemyError, sqlalchemy_exception_handler)
+app.add_exception_handler(Exception, global_exception_handler)
+
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
@@ -63,6 +79,7 @@ app.include_router(spectator_router)
 app.include_router(stats_game_router)
 app.include_router(stats_api_router)
 app.include_router(reports_router)
+app.include_router(server_exceptions_router)
 
 # Mount Socket.IO ASGI app
 app.mount("/ws", socket_app)

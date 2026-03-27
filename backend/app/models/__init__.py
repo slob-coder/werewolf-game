@@ -8,6 +8,7 @@ from app.models.event import GameEvent  # noqa: F401
 from app.models.game import Game  # noqa: F401
 from app.models.player import GamePlayer  # noqa: F401
 from app.models.room import Room  # noqa: F401
+from app.models.server_exception import ServerException  # noqa: F401
 from app.models.user import User  # noqa: F401
 
 __all__ = [
@@ -20,4 +21,5 @@ __all__ = [
     "GamePlayer",
     "GameEvent",
     "GameAction",
+    "ServerException",
 ]
