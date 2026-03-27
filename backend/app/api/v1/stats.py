@@ -3,15 +3,19 @@
 GET /api/v1/games/{game_id}/stats       — game statistics panel data
 GET /api/v1/stats/agents/{agent_id}     — per-agent career stats
 GET /api/v1/stats/leaderboard           — agent leaderboard
+GET /api/v1/stats/history               — finished games for replay
 """
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select, func, desc
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 from starlette.status import HTTP_404_NOT_FOUND
 
 from app.dependencies import get_db
 from app.models.agent import Agent
+from app.models.game import Game
+from app.models.room import Room
 from app.spectator.stats import get_game_stats
 
 game_router = APIRouter(prefix="/api/v1/games", tags=["statistics"])
@@ -93,3 +97,48 @@ async def get_leaderboard(
         })
 
     return leaderboard
+
+
+@stats_router.get("/history")
+async def get_game_history(
+    limit: int = Query(20, ge=1, le=100, description="Max entries"),
+    db: AsyncSession = Depends(get_db),
+) -> list[dict]:
+    """Get list of finished games for history/replay page.
+
+    Returns games sorted by finished_at descending, with room name,
+    winner, duration, and other metadata for replay navigation.
+    """
+    # Query finished games with room info
+    result = await db.execute(
+        select(Game, Room)
+        .join(Room, Game.room_id == Room.id)
+        .where(Game.status == "finished")
+        .order_by(desc(Game.finished_at))
+        .limit(limit)
+    )
+    rows = result.all()
+
+    history = []
+    for game, room in rows:
+        # Calculate duration
+        duration = 0
+        if game.started_at and game.finished_at:
+            duration = int((game.finished_at - game.started_at).total_seconds())
+
+        # Count players from role_config
+        player_count = sum(game.role_config.values()) if game.role_config else 0
+
+        history.append({
+            "game_id": str(game.id),
+            "room_name": room.name if room else "未知房间",
+            "player_count": player_count,
+            "winner": game.winner,
+            "win_reason": game.win_reason,
+            "started_at": game.started_at.isoformat() if game.started_at else None,
+            "finished_at": game.finished_at.isoformat() if game.finished_at else None,
+            "duration_seconds": duration,
+            "role_config": game.role_config,
+        })
+
+    return history

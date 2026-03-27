@@ -99,3 +99,17 @@ export interface CaptchaResponse {
   captcha_id: string
   captcha_image: string
 }
+
+// ── History ──────────────────────────────────────────────────────
+
+export interface HistoryGame {
+  game_id: string
+  room_name: string
+  player_count: number
+  winner: string
+  win_reason: string
+  started_at: string
+  finished_at: string
+  duration_seconds: number
+  role_config: Record<string, number>
+}

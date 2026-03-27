@@ -7,6 +7,7 @@ import RegisterPage from './pages/RegisterPage'
 import RoomPage from './pages/RoomPage'
 import GamePage from './pages/GamePage'
 import ReplayPage from './pages/ReplayPage'
+import HistoryPage from './pages/HistoryPage'
 import AgentsPage from './pages/AgentsPage'
 import AccessKeysPage from './pages/AccessKeysPage'
 import GuidePage from './pages/GuidePage'
@@ -41,6 +42,7 @@ function App() {
             <Route path="/agents" element={<AgentsPage />} />
             <Route path="/access-keys" element={<AccessKeysPage />} />
             <Route path="/guide" element={<GuidePage />} />
+            <Route path="/history" element={<HistoryPage />} />
           </Routes>
         </main>
       </div>

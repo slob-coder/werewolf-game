@@ -8,6 +8,7 @@ import type {
   RegisterResponse,
   AccessKeyInfo,
   AccessKeyCreateResponse,
+  HistoryGame,
 } from '@/types/api'
 import type { ReplayData } from '@/types/game'
 
@@ -159,6 +160,11 @@ export async function getLeaderboard(): Promise<Record<string, unknown>[]> {
 
 export async function getAgentStats(agentId: string): Promise<Record<string, unknown>> {
   const { data } = await api.get(`/stats/agents/${agentId}`)
+  return data
+}
+
+export async function getHistoryGames(limit = 20): Promise<HistoryGame[]> {
+  const { data } = await api.get(`/stats/history?limit=${limit}`)
   return data
 }
 
